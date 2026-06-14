@@ -1,0 +1,260 @@
+import { useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { format, isToday, isYesterday, isSameDay } from 'date-fns'
+import { useSelector } from 'react-redux'
+import { FiEdit2, FiCheck, FiChevronUp } from 'react-icons/fi'
+
+const MessageArea = ({
+  messages,
+  typingUsers,
+  onLoadOlder,
+  hasOlderMessages = false,
+  isFetchingOlderMessages = false,
+}) => {
+  const messagesEndRef = useRef(null)
+  const { user } = useSelector((state) => state.auth)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
+
+  const formatMessageDate = (date) => {
+    const messageDate = new Date(date)
+    if (isToday(messageDate)) {
+      return 'Today'
+    } else if (isYesterday(messageDate)) {
+      return 'Yesterday'
+    } else {
+      return format(messageDate, 'MMMM d, yyyy')
+    }
+  }
+
+  const formatMessageTime = (date) => {
+    if (!date) return ''
+    const d = new Date(date)
+    // "Today" → "10:42 PM"
+    if (isToday(d)) return format(d, 'h:mm a')
+    // "Yesterday" → "Yesterday 10:42 PM"
+    if (isYesterday(d)) return `Yesterday ${format(d, 'h:mm a')}`
+    // Older → "04 Jun 2026 22:42"
+    return format(d, 'dd MMM yyyy HH:mm')
+  }
+
+  const shouldShowDateSeparator = (currentMsg, previousMsg) => {
+    if (!previousMsg) return true
+    return !isSameDay(new Date(currentMsg.createdAt), new Date(previousMsg.createdAt))
+  }
+
+  const shouldGroupMessage = (currentMsg, previousMsg) => {
+    if (!previousMsg) return false
+    if (currentMsg.senderId !== previousMsg.senderId) return false
+    
+    const timeDiff = new Date(currentMsg.createdAt) - new Date(previousMsg.createdAt)
+    return timeDiff < 60000 // Group if within 1 minute
+  }
+
+  const groupedMessages = messages.reduce((acc, msg, index) => {
+    const prevMsg = messages[index - 1]
+    
+    if (shouldShowDateSeparator(msg, prevMsg)) {
+      acc.push({ type: 'date', date: msg.createdAt })
+    }
+    
+    acc.push({
+      type: 'message',
+      message: msg,
+      grouped: shouldGroupMessage(msg, prevMsg),
+    })
+    
+    return acc
+  }, [])
+
+  return (
+    <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      {groupedMessages.length > 0 ? (
+        <>
+          {hasOlderMessages && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => onLoadOlder?.()}
+                disabled={isFetchingOlderMessages}
+                className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-gray-200 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-800/80 dark:text-gray-200 dark:ring-gray-700"
+              >
+                <FiChevronUp size={16} />
+                {isFetchingOlderMessages ? 'Loading older messages...' : 'Load older messages'}
+              </button>
+            </div>
+          )}
+          {groupedMessages.map((item, index) => {
+            if (item.type === 'date') {
+              return (
+                <div key={`date-${index}`} className="flex items-center justify-center my-6">
+                  <div className="px-4 py-1 bg-gray-200 dark:bg-gray-700 rounded-full text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {formatMessageDate(item.date)}
+                  </div>
+                </div>
+              )
+            }
+
+            const msg = item.message
+            const isOwn = msg.senderId === user?.id
+            const showAvatar = !item.grouped
+
+            return (
+              <motion.div
+                key={msg.id}
+                id={`message-${msg.id}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className={`flex ${isOwn ? 'justify-end' : 'justify-start'} ${item.grouped ? 'mt-1' : 'mt-4'}`}
+              >
+                <div className={`flex items-end space-x-2 max-w-2xl ${isOwn ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                  {/* Avatar */}
+                  {showAvatar && !isOwn && (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
+                      {msg.senderName?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {!showAvatar && !isOwn && <div className="w-8" />}
+
+                  {/* Message Bubble */}
+                  <div className={`flex flex-col ${isOwn ? 'items-end' : 'items-start'}`}>
+                    {showAvatar && !isOwn && (
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 ml-2">
+                        {msg.senderName}
+                      </span>
+                    )}
+                    <div
+                      className={`px-4 py-2 rounded-2xl ${
+                        isOwn
+                          ? 'bg-blue-600 text-white rounded-br-sm'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-sm'
+                      } ${msg.isDeleted ? 'italic opacity-60' : ''}`}
+                    >
+                      {/* Image attachment */}
+                      {msg.messageType === 'IMAGE' && msg.attachmentUrl && (
+                        <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer">
+                          <img
+                            src={msg.attachmentUrl}
+                            alt={msg.attachmentName || 'image'}
+                            className="max-w-xs max-h-64 rounded-lg mb-2 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                          />
+                        </a>
+                      )}
+
+                      {/* File attachment (non-image) */}
+                      {msg.messageType === 'FILE' && msg.attachmentUrl && (
+                        <a
+                          href={msg.attachmentUrl}
+                          download={msg.attachmentName}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`flex items-center gap-2 mb-2 px-3 py-2 rounded-lg border transition-colors ${
+                            isOwn
+                              ? 'border-blue-400 hover:bg-blue-500 text-white'
+                              : 'border-gray-300 dark:border-gray-600 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          <span className="text-lg">📎</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate max-w-[200px]">
+                              {msg.attachmentName || msg.content}
+                            </p>
+                            {msg.attachmentSize && (
+                              <p className={`text-xs ${isOwn ? 'text-blue-200' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {(msg.attachmentSize / 1024).toFixed(0)} KB · Click to download
+                              </p>
+                            )}
+                          </div>
+                        </a>
+                      )}
+
+                      {/* Text content (always shown for TEXT, shown as filename for files) */}
+                      {msg.messageType === 'TEXT' && (
+                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                      )}
+
+                      <div className={`flex items-center space-x-2 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                        <span className={`text-xs ${isOwn ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {formatMessageTime(msg.createdAt)}
+                        </span>
+                        {msg.isEdited && (
+                          <span className={`text-xs flex items-center space-x-1 ${isOwn ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                            <FiEdit2 size={10} />
+                            <span>edited</span>
+                          </span>
+                        )}
+                        {isOwn && (
+                          <FiCheck size={14} className="text-blue-100" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )
+          })}
+
+          {/* Typing Indicators */}
+          <AnimatePresence>
+            {typingUsers.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="flex items-center space-x-2"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+                  {typingUsers[0].userName?.charAt(0).toUpperCase()}
+                </div>
+                <div className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-2xl rounded-bl-sm">
+                  <div className="flex space-x-1">
+                    <motion.div
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                      className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full"
+                    />
+                    <motion.div
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.2 }}
+                      className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full"
+                    />
+                    <motion.div
+                      animate={{ y: [0, -5, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.4 }}
+                      className="w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full"
+                    />
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div ref={messagesEndRef} />
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+              <FiCheck size={32} className="text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              No messages yet
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Start the conversation by sending a message
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default MessageArea

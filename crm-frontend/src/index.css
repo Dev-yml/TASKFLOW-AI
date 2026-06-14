@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { @apply border-gray-200 dark:border-[#30363D]; }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    @apply bg-gray-50 dark:bg-[#0D1117] text-gray-900 dark:text-[#E6EDF3];
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  /* ── Buttons ─────────────────────────────────────────────────────── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-[#7C3AED] hover:bg-[#6D28D9] active:bg-[#5B21B6]
+           text-white text-sm font-medium
+           px-4 py-2 rounded-md
+           border border-[#7C3AED]/50
+           transition-colors duration-150
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C3AED]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent hover:bg-[#21262D] active:bg-[#30363D]
+           text-gray-700 dark:text-[#E6EDF3] text-sm font-medium
+           px-4 py-2 rounded-md
+           border border-gray-300 dark:border-[#30363D]
+           transition-colors duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent hover:bg-gray-100 dark:hover:bg-[#21262D]
+           text-gray-700 dark:text-[#E6EDF3] text-sm font-medium
+           px-3 py-1.5 rounded-md
+           border border-gray-300 dark:border-[#30363D]
+           transition-colors duration-150;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent hover:bg-[#DA3633]/10
+           text-[#DA3633] dark:text-[#F85149] text-sm font-medium
+           px-4 py-2 rounded-md
+           border border-[#DA3633]/40
+           transition-colors duration-150;
+  }
+
+  /* ── Cards ───────────────────────────────────────────────────────── */
+  .card {
+    @apply bg-white dark:bg-[#161B22]
+           border border-gray-200 dark:border-[#30363D]
+           rounded-lg p-5;
+  }
+
+  .card-flat {
+    @apply bg-white dark:bg-[#161B22]
+           border border-gray-200 dark:border-[#30363D]
+           rounded-md;
+  }
+
+  /* ── Inputs ──────────────────────────────────────────────────────── */
+  .input {
+    @apply w-full px-3 py-2
+           bg-white dark:bg-[#0D1117]
+           border border-gray-300 dark:border-[#30363D]
+           rounded-md text-sm
+           text-gray-900 dark:text-[#E6EDF3]
+           placeholder:text-gray-400 dark:placeholder:text-[#6E7681]
+           focus:outline-none focus:border-[#7C3AED] focus:ring-2 focus:ring-[#7C3AED]/20
+           transition-colors duration-150
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .label {
+    @apply block text-sm font-medium
+           text-gray-700 dark:text-[#E6EDF3]
+           mb-1.5;
+  }
+
+  /* ── Sidebar nav item ────────────────────────────────────────────── */
+  .nav-item {
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-md
+           text-sm font-medium
+           text-gray-600 dark:text-[#8B949E]
+           hover:text-gray-900 dark:hover:text-[#E6EDF3]
+           hover:bg-gray-100 dark:hover:bg-[#21262D]
+           transition-colors duration-150;
+  }
+
+  .nav-item-active {
+    @apply bg-gray-100 dark:bg-[#21262D]
+           text-gray-900 dark:text-[#E6EDF3]
+           font-semibold;
+  }
+
+  /* ── Badges ──────────────────────────────────────────────────────── */
+  .badge-success  { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 dark:bg-[#238636]/20 text-emerald-700 dark:text-[#3FB950] border border-emerald-200 dark:border-[#238636]/40; }
+  .badge-warning  { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 dark:bg-[#D29922]/15 text-amber-700 dark:text-[#D29922] border border-amber-200 dark:border-[#D29922]/40; }
+  .badge-danger   { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 dark:bg-[#DA3633]/15 text-red-700 dark:text-[#F85149] border border-red-200 dark:border-[#DA3633]/40; }
+  .badge-default  { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-[#21262D] text-gray-600 dark:text-[#8B949E] border border-gray-200 dark:border-[#30363D]; }
+  .badge-accent   { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-50 dark:bg-[#7C3AED]/15 text-violet-700 dark:text-[#A78BFA] border border-violet-200 dark:border-[#7C3AED]/40; }
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-[#30363D] rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-[#484F58]; }
+
+/* ── Skeleton ──────────────────────────────────────────────────────── */
+.skeleton { @apply animate-pulse bg-gray-200 dark:bg-[#21262D] rounded; }
+
+/* ── Auth grid pattern (left panel) ───────────────────────────────── */
+.auth-grid {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.auth-spotlight {
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(124,58,237,0.18) 0%, transparent 70%);
+}
