@@ -14,8 +14,9 @@ import java.util.List;
  * CORS Configuration
  * Configures Cross-Origin Resource Sharing for the application
  *
- * CRITICAL: Uses explicit setAllowedOrigins() (NOT patterns, NOT wildcards)
- * to ensure Access-Control-Allow-Credentials: true is properly emitted.
+ * Uses setAllowedOriginPatterns() to support wildcard patterns (e.g. *.vercel.app)
+ * while still allowing credentials. This prevents breakage on every new Vercel
+ * preview deployment URL.
  */
 @Configuration
 public class CorsConfig {
@@ -26,13 +27,14 @@ public class CorsConfig {
     /**
      * CORS Configuration Source
      * Reads allowed origins from application config (cors.allowed-origins).
+     * Supports wildcard patterns via setAllowedOriginPatterns().
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Parse comma-separated origins from config, then always add the common
-        // localhost variants so nothing is accidentally omitted.
+        // Parse comma-separated origins/patterns from config, then always add the
+        // common localhost variants and all Vercel preview URLs automatically.
         List<String> configOrigins = Arrays.stream(allowedOriginsRaw.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -44,7 +46,8 @@ public class CorsConfig {
                 "http://localhost:3001",
                 "http://127.0.0.1:3001",
                 "http://localhost:5173",
-                "http://127.0.0.1:5173"
+                "http://127.0.0.1:5173",
+                "https://*.vercel.app"   // covers all Vercel preview & production URLs
         );
 
         List<String> allOrigins = java.util.stream.Stream
@@ -52,7 +55,8 @@ public class CorsConfig {
                 .distinct()
                 .toList();
 
-        configuration.setAllowedOrigins(allOrigins);
+        // setAllowedOriginPatterns supports wildcards AND works with credentials
+        configuration.setAllowedOriginPatterns(allOrigins);
 
         configuration.setAllowedMethods(Arrays.asList(
                 "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
