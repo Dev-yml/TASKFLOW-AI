@@ -8,8 +8,10 @@ import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
@@ -26,14 +28,15 @@ import java.util.Map;
 
 /**
  * Redis Configuration
- * Configures Redis for caching and data storage
- * 
+ * Configures Redis for caching and data storage.
+ * When redis.enabled=false, falls back to simple in-memory caching.
+ *
  * Features:
  * - RedisTemplate with JSON serialization
  * - Cache manager with custom TTLs
  * - Multiple cache configurations
  * - String and JSON serializers
- * 
+ *
  * @author CRM Backend Team
  * @version 1.0
  */
@@ -57,10 +60,28 @@ public class RedisConfig {
     private long notificationsTtl;
 
     /**
+     * Fallback in-memory CacheManager used when Redis is disabled.
+     * Activated when redis.enabled=false (or property is absent).
+     */
+    @Bean
+    @ConditionalOnProperty(name = "redis.enabled", havingValue = "false", matchIfMissing = true)
+    public CacheManager simpleCacheManager() {
+        return new ConcurrentMapCacheManager(
+                "dashboard", "dashboardOverview",
+                "taskAnalytics", "teamPerformance", "activityAnalytics",
+                "aiResponses", "aiTaskPrioritization", "aiDeadlinePrediction",
+                "userProfile", "notifications",
+                "dailyReport", "weeklyReport", "monthlyReport",
+                "task", "ai-insights"
+        );
+    }
+
+    /**
      * ObjectMapper specifically configured for Redis serialization.
      * Must support LocalDate/LocalDateTime as Map keys and values.
      */
     @Bean
+    @ConditionalOnProperty(name = "redis.enabled", havingValue = "true")
     public ObjectMapper redisObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
 
@@ -89,6 +110,7 @@ public class RedisConfig {
      * Redis Template Configuration
      */
     @Bean
+    @ConditionalOnProperty(name = "redis.enabled", havingValue = "true")
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory,
                                                         @Qualifier("redisObjectMapper") ObjectMapper redisObjectMapper) {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
@@ -110,9 +132,10 @@ public class RedisConfig {
     }
 
     /**
-     * Cache Manager Configuration
+     * Cache Manager Configuration — Redis-backed, only when Redis is enabled.
      */
     @Bean
+    @ConditionalOnProperty(name = "redis.enabled", havingValue = "true")
     public CacheManager cacheManager(RedisConnectionFactory factory,
                                       @Qualifier("redisObjectMapper") ObjectMapper redisObjectMapper) {
         GenericJackson2JsonRedisSerializer jsonSerializer =

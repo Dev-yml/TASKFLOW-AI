@@ -3,6 +3,7 @@ package com.arjun.crm.service.impl;
 import com.arjun.crm.service.OnlinePresenceService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
+@ConditionalOnProperty(name = "redis.enabled", havingValue = "true")
 @RequiredArgsConstructor
 @Slf4j
 public class OnlinePresenceServiceImpl implements OnlinePresenceService {
